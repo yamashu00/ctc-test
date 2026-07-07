@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>声のかわり</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:   #3B82F6;
+  --blue-d: #1D4ED8;
+  --bg:     #F0F4F8;
+  --white:  #ffffff;
+  --g100:   #F1F5F9;
+  --g200:   #E2E8F0;
+  --g400:   #94A3B8;
+  --g600:   #475569;
+  --g800:   #1E293B;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--g800);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--white);
+  border-bottom: 1px solid var(--g200);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.logo { font-size: 17px; font-weight: 700; color: var(--blue); }
+.logo-sub { font-size: 12px; font-weight: 400; color: var(--g400); margin-left: 8px; }
+
+.tabs { display: flex; gap: 4px; }
+.tab {
+  padding: 7px 14px; border-radius: 8px; border: none;
+  cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit;
+  transition: all 0.15s;
+}
+.tab.active { background: var(--blue); color: white; }
+.tab:not(.active) { background: transparent; color: var(--g600); }
+
+/* ── SCREENS ── */
+.screen { display: none; flex: 1; overflow-y: auto; }
+.screen.active { display: block; }
+
+/* ── DEVICE SCREEN ── */
+.device-inner {
+  padding: 16px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.scene-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.scene-bar::-webkit-scrollbar { display: none; }
+
+.scene-pill {
+  padding: 6px 16px; border-radius: 20px;
+  border: 1.5px solid var(--g200); background: white;
+  white-space: nowrap; cursor: pointer; font-size: 13px; font-weight: 500;
+  font-family: inherit; transition: all 0.15s; flex-shrink: 0;
+}
+.scene-pill.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.speak-card {
+  min-height: 110px; border-radius: 16px; border: none; cursor: pointer;
+  padding: 16px 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; font-family: inherit;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: transform 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.speak-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+.speak-card:active { transform: scale(0.95); }
+.speak-card.speaking { animation: cardPop 0.35s ease; box-shadow: 0 0 0 4px rgba(99,102,241,0.35); }
+.speak-card.wide { grid-column: 1 / -1; min-height: 72px; flex-direction: row; gap: 12px; }
+
+@keyframes cardPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.card-icon  { font-size: 34px; line-height: 1; }
+.card-title { font-size: 15px; font-weight: 700; }
+.card-phrase { font-size: 11px; opacity: 0.72; margin-top: 2px; line-height: 1.35; }
+.wide .card-phrase { display: none; }
+
+.empty-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 0;
+  color: var(--g400);
+  font-size: 14px;
+}
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #312E81; color: white;
+  padding: 10px 22px; border-radius: 100px;
+  font-size: 14px; font-weight: 500;
+  opacity: 0; transition: opacity 0.25s;
+  pointer-events: none; z-index: 300;
+  max-width: 90vw; text-align: center;
+}
+#toast.show { opacity: 1; }
+
+/* ── SETTINGS SCREEN ── */
+.settings-inner {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.section { margin-bottom: 28px; }
+
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--g400); margin-bottom: 10px;
+}
+
+.btn-list { display: flex; flex-direction: column; gap: 8px; }
+
+.btn-row {
+  background: white; border: 1px solid var(--g200); border-radius: 12px;
+  padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+}
+.btn-row-icon {
+  width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.btn-row-info { flex: 1; min-width: 0; }
+.btn-row-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.badge {
+  font-size: 11px; background: var(--g100); color: var(--g600);
+  padding: 2px 8px; border-radius: 20px; font-weight: 500;
+}
+.btn-row-phrase {
+  font-size: 12px; color: var(--g400); margin-top: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.btn-row-actions { display: flex; gap: 6px; }
+
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--g200); background: white;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: background 0.15s;
+}
+.icon-btn:hover { background: var(--g100); }
+.icon-btn.del:hover { background: #FEE2E2; border-color: #FECACA; }
+
+/* ── ADD FORM ── */
+.add-card {
+  background: white;
+  border: 1.5px dashed var(--g200); border-radius: 12px;
+  margin-top: 10px; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.add-card.open { border-style: solid; border-color: var(--blue); }
+
+.add-toggle {
+  width: 100%; padding: 14px; background: none; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 600; color: var(--blue); font-family: inherit;
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+}
+
+.form-body { display: none; padding: 0 20px 20px; }
+.form-body.open { display: block; }
+
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--g600); margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--g200); border-radius: 8px;
+  font-size: 15px; font-family: inherit; color: var(--g800);
+  background: var(--g100); transition: border-color 0.15s, background 0.15s;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none; border-color: var(--blue); background: white;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.field textarea { resize: vertical; }
+
+.color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-swatch {
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  border: 3px solid transparent; transition: all 0.15s;
+}
+.color-swatch.active { border-color: #1E293B; transform: scale(1.1); }
+
+.form-btn {
+  width: 100%; padding: 11px; background: var(--blue); color: white;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit; margin-top: 4px;
+}
+.form-btn:hover { background: var(--blue-d); }
+
+/* ── VOICE SETTINGS ── */
+.voice-card {
+  background: white; border: 1px solid var(--g200); border-radius: 12px; padding: 20px;
+}
+.slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.slider-row:last-of-type { margin-bottom: 0; }
+.slider-name { font-size: 14px; width: 64px; flex-shrink: 0; }
+input[type=range] { flex: 1; cursor: pointer; accent-color: var(--blue); }
+.slider-val { font-size: 13px; color: var(--g400); width: 32px; text-align: right; }
+
+.test-btn {
+  margin-top: 16px; width: 100%; padding: 10px;
+  border: 1.5px solid var(--blue); background: white; color: var(--blue);
+  border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background 0.15s;
+}
+.test-btn:hover { background: #EFF6FF; }
+
+/* ── MODAL ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+  display: none; align-items: flex-end; justify-content: center;
+  z-index: 200; padding: 0;
+}
+.overlay.open { display: flex; }
+
+.modal {
+  background: white; border-radius: 20px 20px 0 0;
+  padding: 28px 24px 32px; width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+.btn-cancel {
+  flex: 1; padding: 11px; background: var(--g100); color: var(--g600);
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+.btn-save {
+  flex: 2; padding: 11px; background: var(--blue); color: white;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.btn-save:hover { background: var(--blue-d); }
+
+/* ── INFO CARD ── */
+.info-card {
+  background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px;
+  padding: 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.7; color: #1E40AF;
+}
+.info-card strong { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">声のかわり<span class="logo-sub">コミュニケーション補助デバイス デモ</span></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-device" onclick="showScreen('device', this)">🔊 デバイス</button>
+    <button class="tab" id="tab-settings" onclick="showScreen('settings', this)">⚙️ 設定</button>
+  </div>
+</header>
+
+<!-- DEVICE SCREEN -->
+<div id="device" class="screen active">
+  <div class="device-inner">
+    <div id="scenePills" class="scene-bar"></div>
+    <div id="btnGrid" class="btn-grid"></div>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div id="settings" class="screen">
+  <div class="settings-inner">
+
+    <div class="info-card">
+      <strong>このアプリについて</strong><br>
+      ボタンを押すと、登録したフレーズを音声で読み上げます。ボタンの内容・場面・色はカスタマイズできます。
+      設定はブラウザに保存されます。
+    </div>
+
+    <div class="section">
+      <div class="section-label">登録ボタン一覧</div>
+      <div class="btn-list" id="btnList"></div>
+
+      <!-- ADD FORM -->
+      <div class="add-card" id="addCard">
+        <button class="add-toggle" onclick="toggleAdd()">＋ ボタンを追加する</button>
+        <div class="form-body" id="addForm">
+          <div class="field">
+            <label>ラベル（ボタン名）</label>
+            <input type="text" id="newLabel" placeholder="例：ありがとう">
+          </div>
+          <div class="field">
+            <label>読み上げるフレーズ</label>
+            <textarea id="newPhrase" rows="2" placeholder="例：ありがとうございます。"></textarea>
+          </div>
+          <div class="field">
+            <label>アイコン（絵文字）</label>
+            <input type="text" id="newIcon" placeholder="例: 🙏" maxlength="2">
+          </div>
+          <div class="field">
+            <label>表示する場面</label>
+            <select id="newScene"></select>
+          </div>
+          <div class="field">
+            <label>カラー</label>
+            <div class="color-row" id="newColorRow"></div>
+          </div>
+          <button class="form-btn" onclick="addButton()">追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">音声設定</div>
+      <div class="voice-card">
+        <div class="slider-row">
+          <span class="slider-name">スピード</span>
+          <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.1" value="0.9"
+                 oninput="updateVoice('rate', this.value)">
+          <span class="slider-val" id="rateVal">0.9</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-name">ピッチ</span>
+          <input type="range" id="pitchSlider" min="0.5" max="1.5" step="0.1" value="1.0"
+                 oninput="updateVoice('pitch', this.value)">
+          <span class="slider-val" id="pitchVal">1.0</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-name">音量</span>
+          <input type="range" id="volSlider" min="0.1" max="1.0" step="0.1" value="1.0"
+                 oninput="updateVoice('volume', this.value)">
+          <span class="slider-val" id="volVal">1.0</span>
+        </div>
+        <button class="test-btn" onclick="testVoice()">🔊 音声テスト（「こんにちは、声のかわりです」）</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="editOverlay" onclick="maybeCloseModal(event)">
+  <div class="modal" id="editModal">
+    <div class="modal-title">ボタンを編集</div>
+    <input type="hidden" id="editId">
+    <div class="field"><label>ラベル</label><input type="text" id="editLabel"></div>
+    <div class="field"><label>フレーズ</label><textarea id="editPhrase" rows="2"></textarea></div>
+    <div class="field"><label>アイコン</label><input type="text" id="editIcon" maxlength="2"></div>
+    <div class="field"><label>場面</label><select id="editScene"></select></div>
+    <div class="field"><label>カラー</label><div class="color-row" id="editColorRow"></div></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveEdit()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ──────────────────────────────────────────────────
+const COLORS = [
+  { bg: '#DBEAFE', text: '#1D4ED8' },  // 0 blue
+  { bg: '#DCFCE7', text: '#15803D' },  // 1 green
+  { bg: '#FEF3C7', text: '#B45309' },  // 2 yellow
+  { bg: '#FCE7F3', text: '#9D174D' },  // 3 pink
+  { bg: '#F3E8FF', text: '#7E22CE' },  // 4 purple
+  { bg: '#FFEDD5', text: '#C2410C' },  // 5 orange
+  { bg: '#E0F2FE', text: '#0369A1' },  // 6 sky
+  { bg: '#F0FDF4', text: '#166534' },  // 7 mint
+];
+
+const EMERGENCY = { bg: '#FEE2E2', text: '#B91C1C' };
+
+const SCENES = ['すべて', '授業中', '食堂', '支援室'];
+
+const DEFAULT_BUTTONS = [
+  { id: 1,  label: 'はい',           phrase: 'はい、分かりました。',                    icon: '✅', scene: 'すべて',  ci: 1,  wide: false },
+  { id: 2,  label: 'いいえ',          phrase: 'いいえ、少し待ってください。',              icon: '🙅', scene: 'すべて',  ci: 5,  wide: false },
+  { id: 3,  label: '質問があります',   phrase: 'すみません、質問があります。',              icon: '🙋', scene: '授業中', ci: 0,  wide: false },
+  { id: 4,  label: 'もう一度',        phrase: 'すみません、もう一度言ってもらえますか。',   icon: '🔄', scene: 'すべて',  ci: 6,  wide: false },
+  { id: 5,  label: 'ありがとう',       phrase: 'ありがとうございます。',                   icon: '🙏', scene: 'すべて',  ci: 4,  wide: false },
+  { id: 6,  label: 'トイレに行きます', phrase: 'トイレに行ってもいいですか。',              icon: '🚻', scene: '授業中', ci: 2,  wide: false },
+  { id: 7,  label: 'これをください',   phrase: 'これを一つください。',                     icon: '👆', scene: '食堂',   ci: 3,  wide: false },
+  { id: 8,  label: 'お腹が空いた',    phrase: 'お腹が空きました。',                       icon: '🍙', scene: '食堂',   ci: 2,  wide: false },
+  { id: 9,  label: 'ちょっと待って',   phrase: '少し時間をください。',                     icon: '⏳', scene: 'すべて',  ci: 7,  wide: false },
+  { id: 10, label: '調子が悪い',      phrase: '少し体の調子が悪いです。',                  icon: '😔', scene: '支援室', ci: 1,  wide: false },
+  { id: 99, label: '助けてください',   phrase: 'すみません、助けてください。',              icon: '🆘', scene: 'すべて',  ci: -1, wide: true  },
+];
+
+// ─── STATE ──────────────────────────────────────────────────────
+let btns    = load('koe_btns')  ?? JSON.parse(JSON.stringify(DEFAULT_BUTTONS));
+let voice   = load('koe_voice') ?? { rate: 0.9, pitch: 1.0, volume: 1.0 };
+let scene   = 'すべて';
+let nextId  = Math.max(...btns.map(b => b.id)) + 1;
+let addCi   = 0;
+let editCi  = 0;
+
+function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function save()  { localStorage.setItem('koe_btns', JSON.stringify(btns)); localStorage.setItem('koe_voice', JSON.stringify(voice)); }
+
+// ─── SPEECH ─────────────────────────────────────────────────────
+let synth = window.speechSynthesis;
+function speak(text, el) {
+  if (!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP'; u.rate = voice.rate; u.pitch = voice.pitch; u.volume = voice.volume;
+  const voices = synth.getVoices();
+  const ja = voices.find(v => v.lang.startsWith('ja'));
+  if (ja) u.voice = ja;
+  if (el) { el.classList.add('speaking'); u.onend = () => el.classList.remove('speaking'); }
+  showToast('🔊 ' + text);
+  synth.speak(u);
+}
+function testVoice() { speak('こんにちは。声のかわりです。'); }
+synth?.addEventListener('voiceschanged', () => {});
+synth?.getVoices();
+
+// ─── TOAST ──────────────────────────────────────────────────────
+let toastT;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── SCENE SELECT ────────────────────────────────────────────────
+function buildSceneOptions(selId, current) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = SCENES.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+}
+
+// ─── DEVICE SCREEN ───────────────────────────────────────────────
+function renderScenes() {
+  document.getElementById('scenePills').innerHTML =
+    SCENES.map(s => `<button class="scene-pill ${scene === s ? 'active' : ''}" onclick="setScene('${s}')">${s}</button>`).join('');
+}
+
+function setScene(s) { scene = s; renderScenes(); renderGrid(); }
+
+function renderGrid() {
+  const grid = document.getElementById('btnGrid');
+  const visible = btns.filter(b => scene === 'すべて' || b.scene === 'すべて' || b.scene === scene);
+  if (!visible.length) {
+    grid.innerHTML = '<div class="empty-hint">この場面のボタンはありません<br><small>設定タブからボタンを追加できます</small></div>';
+    return;
+  }
+  grid.innerHTML = visible.map(b => {
+    const c = b.ci === -1 ? EMERGENCY : (COLORS[b.ci] ?? COLORS[0]);
+    return `<button class="speak-card ${b.wide ? 'wide' : ''}"
+               data-id="${b.id}"
+               style="background:${c.bg}; color:${c.text};">
+      <span class="card-icon">${b.icon}</span>
+      <span class="card-title">${b.label}</span>
+      <span class="card-phrase">${b.phrase}</span>
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('.speak-card').forEach(el => {
+    el.addEventListener('click', function() {
+      const btn = btns.find(b => b.id === parseInt(this.dataset.id));
+      if (btn) speak(btn.phrase, this);
+    });
+  });
+}
+
+// ─── SETTINGS SCREEN ─────────────────────────────────────────────
+function renderList() {
+  document.getElementById('btnList').innerHTML = btns.map(b => {
+    const c = b.ci === -1 ? EMERGENCY : (COLORS[b.ci] ?? COLORS[0]);
+    return `<div class="btn-row">
+      <div class="btn-row-icon" style="background:${c.bg}; color:${c.text};">${b.icon}</div>
+      <div class="btn-row-info">
+        <div class="btn-row-title">${b.label}<span class="badge">${b.scene}</span></div>
+        <div class="btn-row-phrase">${b.phrase}</div>
+      </div>
+      <div class="btn-row-actions">
+        <button class="icon-btn" data-edit="${b.id}" title="編集">✏️</button>
+        <button class="icon-btn del" data-del="${b.id}" title="削除">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-edit]').forEach(el => el.addEventListener('click', () => openEdit(parseInt(el.dataset.edit))));
+  document.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', () => deleteBtn(parseInt(el.dataset.del))));
+}
+
+// ─── COLOR PICKER ────────────────────────────────────────────────
+function renderColorRow(rowId, selected, onClickFn) {
+  document.getElementById(rowId).innerHTML =
+    COLORS.map((c, i) => `<div class="color-swatch ${selected === i ? 'active' : ''}"
+      style="background:${c.bg};"
+      onclick="${onClickFn}(${i})"></div>`).join('');
+}
+function pickNew(i)  { addCi  = i; renderColorRow('newColorRow',  addCi,  'pickNew');  }
+function pickEdit(i) { editCi = i; renderColorRow('editColorRow', editCi, 'pickEdit'); }
+
+// ─── ADD ─────────────────────────────────────────────────────────
+function toggleAdd() {
+  const form = document.getElementById('addForm');
+  const card = document.getElementById('addCard');
+  const open = form.classList.toggle('open');
+  card.classList.toggle('open', open);
+  if (open) {
+    buildSceneOptions('newScene', 'すべて');
+    renderColorRow('newColorRow', addCi, 'pickNew');
+  }
+}
+
+function addButton() {
+  const label  = document.getElementById('newLabel').value.trim();
+  const phrase = document.getElementById('newPhrase').value.trim();
+  const icon   = document.getElementById('newIcon').value.trim() || '💬';
+  const scene_ = document.getElementById('newScene').value;
+  if (!label || !phrase) { alert('ラベルとフレーズを入力してください'); return; }
+  btns.push({ id: nextId++, label, phrase, icon, scene: scene_, ci: addCi, wide: false });
+  save();
+  document.getElementById('newLabel').value = '';
+  document.getElementById('newPhrase').value = '';
+  document.getElementById('newIcon').value = '';
+  toggleAdd();
+  renderList(); renderGrid();
+}
+
+// ─── EDIT ────────────────────────────────────────────────────────
+function openEdit(id) {
+  const b = btns.find(x => x.id === id); if (!b) return;
+  document.getElementById('editId').value    = id;
+  document.getElementById('editLabel').value  = b.label;
+  document.getElementById('editPhrase').value = b.phrase;
+  document.getElementById('editIcon').value   = b.icon;
+  buildSceneOptions('editScene', b.scene);
+  editCi = b.ci >= 0 ? b.ci : 0;
+  renderColorRow('editColorRow', editCi, 'pickEdit');
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('editOverlay').classList.remove('open'); }
+
+function maybeCloseModal(e) { if (e.target === document.getElementById('editOverlay')) closeModal(); }
+
+function saveEdit() {
+  const id = parseInt(document.getElementById('editId').value);
+  const b  = btns.find(x => x.id === id); if (!b) return;
+  b.label  = document.getElementById('editLabel').value.trim()  || b.label;
+  b.phrase = document.getElementById('editPhrase').value.trim() || b.phrase;
+  b.icon   = document.getElementById('editIcon').value.trim()   || b.icon;
+  b.scene  = document.getElementById('editScene').value;
+  b.ci     = editCi;
+  save(); closeModal(); renderList(); renderGrid();
+}
+
+function deleteBtn(id) {
+  if (!confirm('このボタンを削除しますか？')) return;
+  btns = btns.filter(b => b.id !== id);
+  save(); renderList(); renderGrid();
+}
+
+// ─── VOICE ───────────────────────────────────────────────────────
+function updateVoice(key, val) {
+  voice[key] = parseFloat(val);
+  const ids = { rate: 'rateVal', pitch: 'pitchVal', volume: 'volVal' };
+  document.getElementById(ids[key]).textContent = parseFloat(val).toFixed(1);
+  save();
+}
+
+function initSliders() {
+  document.getElementById('rateSlider').value  = voice.rate;   document.getElementById('rateVal').textContent  = voice.rate.toFixed(1);
+  document.getElementById('pitchSlider').value = voice.pitch;  document.getElementById('pitchVal').textContent = voice.pitch.toFixed(1);
+  document.getElementById('volSlider').value   = voice.volume; document.getElementById('volVal').textContent   = voice.volume.toFixed(1);
+}
+
+// ─── SCREEN ──────────────────────────────────────────────────────
+function showScreen(name, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'settings') renderList();
+  if (name === 'device')   renderGrid();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+renderScenes();
+renderGrid();
+renderList();
+initSliders();
+</script>
+</body>
+</html>
