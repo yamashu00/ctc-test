@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>声のかわり</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -286,9 +286,77 @@ input[type=range] { flex: 1; cursor: pointer; accent-color: var(--blue); }
   padding: 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.7; color: #1E40AF;
 }
 .info-card strong { font-weight: 700; }
+
+/* ── ACCESSIBILITY ── */
+body { zoom: var(--font-scale, 1); }
+
+#a11y-bar {
+  background: var(--g800); color: white; padding: 6px 16px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 13px; flex-shrink: 0;
+}
+#a11y-bar .a11y-label { color: var(--g400); margin-right: 4px; }
+.a11y-btn {
+  padding: 5px 12px; min-height: 40px; border-radius: 6px; border: 1px solid #555;
+  background: #2d2d2d; color: white; cursor: pointer; font-size: 13px;
+  font-family: inherit; white-space: nowrap;
+}
+.a11y-btn.on { background: var(--blue); border-color: var(--blue); }
+.a11y-sep { color: #555; }
+
+button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--blue); outline-offset: 2px;
+}
+
+/* 高コントラスト */
+body.high-contrast { --bg:#000; --white:#111; --g100:#1a1a1a; --g200:#444; --g400:#bbb; --g600:#ddd; --g800:#fff; --blue:#4D9FFF; }
+body.high-contrast header { background: #111; border-color: #444; }
+body.high-contrast .speak-card { background: #000 !important; color: #fff !important; border: 2px solid #fff; }
+body.high-contrast .speak-card.wide { border-color: #FF6B6B; color: #FF6B6B !important; }
+body.high-contrast .scene-pill { background: #111; color: #fff; border-color: #666; }
+body.high-contrast .scene-pill.active { background: var(--blue); border-color: var(--blue); }
+body.high-contrast .key-hint { background: #333; color: #fff; }
+body.high-contrast :focus-visible { outline-color: #FFD700; }
+
+/* スキャン入力 */
+.speak-card { position: relative; }
+.speak-card.scan-focus {
+  outline: 6px solid #F59E0B; outline-offset: 3px;
+  transform: scale(1.03);
+}
+#scanHint {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: #B45309; color: white; text-align: center;
+  padding: 12px 16px; font-size: 15px; font-weight: 700; z-index: 250; line-height: 1.5;
+}
+body.scanning #scanHint { display: block; }
+
+/* キーボードショートカット表示 */
+.key-hint {
+  position: absolute; top: 6px; left: 8px; font-size: 11px; font-weight: 700;
+  background: rgba(255,255,255,0.75); color: #334155;
+  border-radius: 6px; padding: 1px 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
+
+<!-- ACCESSIBILITY TOOLBAR -->
+<div id="a11y-bar" role="toolbar" aria-label="アクセシビリティ設定">
+  <span class="a11y-label">⚙️ 使いやすさ：</span>
+  <button class="a11y-btn on" id="fs-1" onclick="setFontScale(1)">文字 小</button>
+  <button class="a11y-btn" id="fs-2" onclick="setFontScale(1.2)">文字 中</button>
+  <button class="a11y-btn" id="fs-3" onclick="setFontScale(1.45)">文字 大</button>
+  <span class="a11y-sep">｜</span>
+  <button class="a11y-btn" id="contrastBtn" onclick="toggleContrast()">🌓 高コントラスト</button>
+  <span class="a11y-sep">｜</span>
+  <button class="a11y-btn" id="scanBtn" onclick="toggleScan()">🔘 スキャン入力</button>
+</div>
 
 <!-- HEADER -->
 <header>
@@ -314,7 +382,11 @@ input[type=range] { flex: 1; cursor: pointer; accent-color: var(--blue); }
     <div class="info-card">
       <strong>このアプリについて</strong><br>
       ボタンを押すと、登録したフレーズを音声で読み上げます。ボタンの内容・場面・色はカスタマイズできます。
-      設定はブラウザに保存されます。
+      設定はブラウザに保存されます。<br><br>
+      <strong>使いやすくする機能（画面上部の黒いバー）</strong><br>
+      ・文字の大きさ変更／高コントラスト表示（設定は保存されます）<br>
+      ・スキャン入力：ボタンが順番に光り、画面のどこをタップしても（スペースキーでも）選べます。スイッチ1つ・指1本で操作できます<br>
+      ・数字キー：ボタン左上の数字（1〜9、緊急ボタンは0）をキーボードで押すと読み上げます
     </div>
 
     <div class="section">
@@ -379,7 +451,10 @@ input[type=range] { flex: 1; cursor: pointer; accent-color: var(--blue); }
 </div>
 
 <!-- TOAST -->
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- SCAN HINT -->
+<div id="scanHint">🔘 スキャン入力中：ボタンが順番に光ります。読み上げたいボタンが光ったら、画面のどこかをタップ（またはスペースキー）。終了は Esc か上の「スキャン入力」ボタン。</div>
 
 <!-- EDIT MODAL -->
 <div class="overlay" id="editOverlay" onclick="maybeCloseModal(event)">
@@ -487,16 +562,21 @@ function renderGrid() {
     grid.innerHTML = '<div class="empty-hint">この場面のボタンはありません<br><small>設定タブからボタンを追加できます</small></div>';
     return;
   }
+  let num = 0;
   grid.innerHTML = visible.map(b => {
     const c = b.ci === -1 ? EMERGENCY : (COLORS[b.ci] ?? COLORS[0]);
+    const key = b.wide ? '0' : (++num <= 9 ? String(num) : '');
     return `<button class="speak-card ${b.wide ? 'wide' : ''}"
-               data-id="${b.id}"
+               data-id="${b.id}" data-key="${key}"
+               aria-label="${b.label}。押すと「${b.phrase}」と読み上げます"
                style="background:${c.bg}; color:${c.text};">
-      <span class="card-icon">${b.icon}</span>
+      ${key ? `<span class="key-hint" aria-hidden="true">${key}</span>` : ''}
+      <span class="card-icon" aria-hidden="true">${b.icon}</span>
       <span class="card-title">${b.label}</span>
       <span class="card-phrase">${b.phrase}</span>
     </button>`;
   }).join('');
+  scanIndex = -1;
   grid.querySelectorAll('.speak-card').forEach(el => {
     el.addEventListener('click', function() {
       const btn = btns.find(b => b.id === parseInt(this.dataset.id));
@@ -620,7 +700,90 @@ function showScreen(name, el) {
   if (name === 'device')   renderGrid();
 }
 
+// ─── ACCESSIBILITY ───────────────────────────────────────────────
+let a11y = load('koe_a11y') ?? { scale: 1, contrast: false };
+function saveA11y() { localStorage.setItem('koe_a11y', JSON.stringify(a11y)); }
+
+function setFontScale(s) {
+  a11y.scale = s; saveA11y();
+  document.body.style.zoom = s;
+  [['fs-1', 1], ['fs-2', 1.2], ['fs-3', 1.45]].forEach(([id, v]) =>
+    document.getElementById(id).classList.toggle('on', s === v));
+}
+
+function toggleContrast() {
+  a11y.contrast = !a11y.contrast; saveA11y();
+  applyContrast();
+}
+function applyContrast() {
+  document.body.classList.toggle('high-contrast', a11y.contrast);
+  document.getElementById('contrastBtn').classList.toggle('on', a11y.contrast);
+}
+
+// ── スキャン入力（スイッチ1つ・指1本で操作） ──
+let scanOn = false, scanIndex = -1, scanTimer = null;
+const SCAN_INTERVAL = 1600;
+
+function scanCards() { return [...document.querySelectorAll('#btnGrid .speak-card')]; }
+
+function scanStep() {
+  const cards = scanCards(); if (!cards.length) return;
+  cards.forEach(el => el.classList.remove('scan-focus'));
+  scanIndex = (scanIndex + 1) % cards.length;
+  cards[scanIndex].classList.add('scan-focus');
+  cards[scanIndex].scrollIntoView({ block: 'nearest' });
+}
+
+function scanSelect() {
+  const el = scanCards()[scanIndex]; if (!el) return;
+  const b = btns.find(x => x.id === parseInt(el.dataset.id));
+  if (b) speak(b.phrase, el);
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+function toggleScan() {
+  scanOn = !scanOn;
+  document.body.classList.toggle('scanning', scanOn);
+  document.getElementById('scanBtn').classList.toggle('on', scanOn);
+  clearInterval(scanTimer); scanTimer = null; scanIndex = -1;
+  document.querySelectorAll('.scan-focus').forEach(el => el.classList.remove('scan-focus'));
+  if (scanOn) {
+    showScreen('device', document.getElementById('tab-device'));
+    scanStep();
+    scanTimer = setInterval(scanStep, SCAN_INTERVAL);
+  }
+}
+
+// スキャン中は画面のどこをタップしても選択（設定バー・ヘッダーは除く）
+document.getElementById('device').addEventListener('click', e => {
+  if (!scanOn) return;
+  e.preventDefault(); e.stopPropagation();
+  scanSelect();
+}, true);
+
+// キーボード操作：スペース/Enter=スキャン選択、Esc=スキャン終了、数字キー=ボタン読み上げ
+document.addEventListener('keydown', e => {
+  const active = document.activeElement;
+  const typing = active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName);
+  const inControls = active && active.closest && active.closest('#a11y-bar, header');
+  if (scanOn && !typing && !inControls) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); scanSelect(); return; }
+    if (e.key === 'Escape') { toggleScan(); return; }
+  }
+  if (typing) return;
+  if (!document.getElementById('device').classList.contains('active')) return;
+  if (/^[0-9]$/.test(e.key)) {
+    const el = document.querySelector(`#btnGrid .speak-card[data-key="${e.key}"]`);
+    if (el) {
+      const b = btns.find(x => x.id === parseInt(el.dataset.id));
+      if (b) speak(b.phrase, el);
+    }
+  }
+});
+
 // ─── INIT ────────────────────────────────────────────────────────
+setFontScale(a11y.scale);
+applyContrast();
 renderScenes();
 renderGrid();
 renderList();
